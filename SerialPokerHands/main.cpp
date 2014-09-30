@@ -83,10 +83,10 @@ bool CheckRoyalFlush(vector<Card> hand) {
 	// pattern:
 	// XXXXX
 	// A-10-J-Q-K
-	
+	Suit s = hand[0].getSuit();
 
 	return hand[0].getValue() == ACE && hand[1].getValue() == TEN && hand[2].getValue() == JACK && hand[3].getValue() == QUEEN && hand[4].getValue() == KING
-		&& hand[0].getSuit() == hand[1].getSuit() && hand[0].getSuit() == hand[2].getSuit() && hand[0].getSuit() == hand[3].getSuit() && hand[0].getSuit() == hand[4].getSuit();
+		&& hand[1].getSuit() == s && hand[2].getSuit() == s && hand[3].getSuit() == s && hand[4].getSuit() == s;
 
 }
 
@@ -104,9 +104,6 @@ bool CheckFrequencies()
 
 		vector<Card> hand = cards.getHand();
 
-
-
-		
 		if(CheckRoyalFlush(hand))
 			frequencies["royalFlush"] += 1;
 		else if(CheckStraightFlush(hand))
@@ -160,24 +157,15 @@ int main(){
 	frequencies["straightFlush"] = 0;
 	frequencies["royalFlush"] = 0;
 
+	srand(time(0));
+
 	do{
 		count++;
 		if (CheckFrequencies()){
 			break;
 		}
-	} while (count <= 275000);
-	////put the array into a 2d array, making it easier to look at
-	//int newHand[5][2];
-	//for (int i = 0; i < 5; i++){
-	//	newHand[i][0] = atoi(to_string(hand[i]).substr(0, to_string(hand[i]).length() - 1).c_str());
-	//	newHand[i][1] = atoi(to_string(hand[i]).substr(to_string(hand[i]).length() - 1, 1).c_str());
-	//}
+	} while (frequencies["royalFlush"] <= 0);
 
-	//bool check = CheckFlush(newHand);
-
-	/*map<string,int> frequencies = CheckFrequencies();
-
-*/
 
 	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
 	cout << setw(60) << right << "================================================================" << endl;
