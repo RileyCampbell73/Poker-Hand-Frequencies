@@ -49,12 +49,12 @@ public:
 	Suit getSuit(){
 		return suit;
 	}
-	friend bool operator <( Card& first,  Card& second)
+};
+inline bool operator< (Card first, Card second)
 	{
 		return first.getValue() < second.getValue();
+	
 	}
-
-};
 
 class Deck{
 private:
@@ -66,7 +66,7 @@ public:
 		{
 			for (int iSuit = 0; iSuit != 4; iSuit++)
 			{
-				Card temp((Value)iVal, (Suit)iSuit);
+				const Card temp((Value)iVal, (Suit)iSuit);
 				deck.push_back(temp);
 			}
 		}
