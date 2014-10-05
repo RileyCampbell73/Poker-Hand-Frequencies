@@ -141,7 +141,7 @@ bool CheckFrequencies()
 	return false;
 }
 
-int main(){
+int main(int argc, char* argv[]){
 	Deck cards;
 	vector<Card> hand = cards.getHand();
 	int count = 0;
@@ -157,7 +157,7 @@ int main(){
 	frequencies["straightFlush"] = 0;
 	frequencies["royalFlush"] = 0;
 
-	srand(time(0));
+	srand((unsigned int)time(0));
 
 	do{
 		count++;
@@ -185,70 +185,6 @@ int main(){
 	cout << setw(16) << right << "Hands Generated: " << setw(18) << count << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 
-
-
-
-
-
-	//Deck cards;
-	//bool found = false;
-	//do
-
-	//typedef std::map<std::string, int>::iterator it_type;
-	//for(it_type iterator = frequencies.begin(); iterator != frequencies.end(); iterator++) {
-	//	cout << iterator->first << ": " << iterator->second << endl;
-	//}
-
-	//{
-	//	vector<int> hand = cards.getHand();
-	//	//put the array into a 2d array, making it easier to look at
-	//	int newHand[5][2];
-	//	for (int i = 0; i < 5; i++){
-	//		newHand[i][0] = atoi(to_string(hand[i]).substr(0, to_string(hand[i]).length() - 1).c_str());
-	//		newHand[i][1] = atoi(to_string(hand[i]).substr(to_string(hand[i]).length() - 1, 1).c_str());
-	//	}
-	//	found = CheckPair(newHand);
-	//} while(!found);
-
-	//cout << "found pair" << endl;
-	//
-
-
-
-
-	/*vector<int> premade;
-	premade.push_back(11);
-	premade.push_back(101);
-	premade.push_back(111);
-	premade.push_back(121);
-	premade.push_back(131);
-	bool test = CheckRoyalFlush(premade);
-
-<<<<<<< Updated upstream
-	cout << test;*/
-/*
-	Deck cards;
-	bool foundRF = false;
-	do
-	{
-		vector<int> hand = cards.getHand();
-		foundRF = CheckRoyalFlush(hand);
-	} while(!foundRF);
-
-	cout << "found Royal Flush" << endl;*/
-
-	//this whole thing could have been done better.
-
-	//map<string, int> frequencies = CheckFrequencies();
-
-	//typedef std::map<std::string, int>::iterator it_type;
-	//for(it_type iterator = frequencies.begin(); iterator != frequencies.end(); iterator++) {
-		//cout << iterator->first << ": " << iterator->second << endl;
-	//}
-	//vector<int> but = { 11, 101, 111, 121, 131 };
-
-
-	//bool check = CheckRoyalFlush(but);
 
 
 	return 0;
