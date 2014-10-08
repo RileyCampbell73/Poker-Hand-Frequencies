@@ -126,30 +126,76 @@ bool CheckRoyalFlush(vector<Card> hand) {
 
 
 
-void CheckFrequencies(map<string, int> &frequencies, Deck cards)
+void CheckFrequencies(map<string, int> &frequencies, Deck cards, int rank)
 {
-	bool foundAll = false;
-
 	vector<Card> hand = cards.getHand();
+	MPI_Request request;
+	static int msgBuff;
 
-	if (CheckRoyalFlush(hand))
+	if (CheckRoyalFlush(hand)){
+		if (frequencies["royalFlush"] == 0 && rank > 0){
+			msgBuff = 8;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["royalFlush"] += 1;
-	else if (CheckStraightFlush(hand))
+	}
+	else if (CheckStraightFlush(hand)){
+		if (frequencies["straightFlush"] == 0 && rank > 0){
+			msgBuff = 7;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["straightFlush"] += 1;
-	else if (CheckFourofKind(hand))
+	}
+	else if (CheckFourofKind(hand)){
+		if (frequencies["fourOfAKind"] == 0 && rank > 0){
+			msgBuff = 6;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["fourOfAKind"] += 1;
+	}
 	else if (CheckFullHouse(hand))
+	{
+		if (frequencies["fullHouse"] == 0 && rank > 0){
+			msgBuff = 5;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["fullHouse"] += 1;
-	else if (CheckFlush(hand))
+	}
+	else if (CheckFlush(hand)){
+		if (frequencies["flush"] == 0 && rank > 0){
+			msgBuff = 4;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["flush"] += 1;
-	else if (CheckStraight(hand))
+	}
+	else if (CheckStraight(hand)){
+		if (frequencies["straight"] == 0 && rank > 0){
+			msgBuff = 3;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["straight"] += 1;
-	else if (CheckThreeofKind(hand))
+	}
+	else if (CheckThreeofKind(hand)){
+		if (frequencies["threeOfAKind"] == 0 && rank > 0){
+			msgBuff = 2;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["threeOfAKind"] += 1;
-	else if (CheckTwoPair(hand))
+	}
+	else if (CheckTwoPair(hand)){
+		if (frequencies["twoPair"] == 0 && rank > 0){
+			msgBuff = 1;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["twoPair"] += 1;
-	else if (CheckPair(hand))
+	}
+	else if (CheckPair(hand)){
+		if (frequencies["onePair"] == 0 && rank > 0){
+			msgBuff = 0;
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_NEW_TYPE, MPI_COMM_WORLD, &request);
+		}
 		frequencies["onePair"] += 1;
+	}
 	else
 		frequencies["noPair"] += 1;
 
@@ -171,8 +217,6 @@ void processSlave(int rank)
 	static int msgBuff, recvFlag;
 	MPI_Status status;
 	MPI_Request request;
-	
-	bool endProcess = false;
 	Deck cards;
 
 	frequencies["noPair"] = 0;
@@ -187,26 +231,28 @@ void processSlave(int rank)
 	frequencies["royalFlush"] = 0;
 
 	srand((unsigned int)time(0));
-	bool messageSent = false;
+	bool foundMessageSent = false;
+	bool foundAllHands = false;
+	bool endProcess = false;
 
 	do{
 		MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
-		bool foundHands = FoundAll(frequencies);
-
+		
 		if (recvFlag){
 			MPI_Recv(&msgBuff, 0, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 			if (status.MPI_TAG == TAG_QUIT){
 				endProcess = true;
 			}
 		}
-		else if (!foundHands){
+		else if (!foundAllHands){
 			count++;
-			CheckFrequencies(frequencies, cards);
+			CheckFrequencies(frequencies, cards, rank);
+			foundAllHands = FoundAll(frequencies);
 		}
-		else if (!messageSent && foundHands){
+		else if (!foundMessageSent && foundAllHands){
 			//send message that all were found
 			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_FOUND_ALL, MPI_COMM_WORLD, &request);
-			messageSent = true;
+			foundMessageSent = true;
 		}
 	} while (!endProcess);
 
