@@ -11,6 +11,7 @@
 //check to see if all are found
 //
 //Checks for a message from any slave(NON - BLOCKING)
+//if caught then terminate all slaves
 //
 
 //- Slave Processes
@@ -37,6 +38,7 @@
 using namespace std;
 
 unsigned int total = 0;
+const int TAG_DATA = 0, TAG_QUIT = 1, TAG_NEW_TYPE = 2, TAG_FOUND_ALL = 3;
 
 
 bool CheckPair(vector<Card> hand){
@@ -122,12 +124,10 @@ bool CheckRoyalFlush(vector<Card> hand) {
 }
 
 
-map<string, int> frequencies;
 
-bool CheckFrequencies()
+
+void CheckFrequencies(map<string, int> &frequencies, Deck cards)
 {
-
-	Deck cards;
 	bool foundAll = false;
 
 	vector<Card> hand = cards.getHand();
@@ -153,20 +153,12 @@ bool CheckFrequencies()
 	else
 		frequencies["noPair"] += 1;
 
-
-	//	//int foundCategories = 0;
-	//	//for(it_type iterator = frequencies.begin(); iterator != frequencies.end(); iterator++) {
-	//	//	if( iterator->second != 0 )
-	//	//		foundCategories ++;
-	//	//	if( foundCategories == 9 )
-	//	//		foundAll = true;
-	//	//}
-	//	//if (frequencies["royalFlush"] > 0)
-	//		//foundAll = true;
-	//	
-
-
-	return false;
+}
+bool FoundAll(map<string, int> &frequencies){
+	return frequencies["noPair"] >= 1 && frequencies["onePair"] >= 1 && frequencies["twoPair"] >= 1 
+		&& frequencies["threeOfAKind"] >= 1 && frequencies["straight"] >= 1 && frequencies["flush"] >= 1 
+		&& frequencies["fullHouse"] >= 1 && frequencies["fourOfAKind"] >= 1 && frequencies["straightFlush"] >= 1
+		&& frequencies["royalFlush"] >= 1;
 }
 
 void processMaster(int numProcs)
@@ -174,32 +166,59 @@ void processMaster(int numProcs)
 }
 void processSlave(int rank)
 {
+	map<string, int> frequencies;
+	int count = 0;
+	static int msgBuff, recvFlag;
+	MPI_Status status;
+	MPI_Request request;
+	
+	bool endProcess = false;
+	Deck cards;
+
+	frequencies["noPair"] = 0;
+	frequencies["onePair"] = 0;
+	frequencies["twoPair"] = 0;
+	frequencies["threeOfAKind"] = 0;
+	frequencies["straight"] = 0;
+	frequencies["flush"] = 0;
+	frequencies["fullHouse"] = 0;
+	frequencies["fourOfAKind"] = 0;
+	frequencies["straightFlush"] = 0;
+	frequencies["royalFlush"] = 0;
+
+	srand((unsigned int)time(0));
+	bool messageSent = false;
+
+	do{
+		MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
+		bool foundHands = FoundAll(frequencies);
+
+		if (recvFlag){
+			MPI_Recv(&msgBuff, 0, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+			if (status.MPI_TAG == TAG_QUIT){
+				endProcess = true;
+			}
+		}
+		else if (!foundHands){
+			count++;
+			CheckFrequencies(frequencies, cards);
+		}
+		else if (!messageSent && foundHands){
+			//send message that all were found
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_FOUND_ALL, MPI_COMM_WORLD, &request);
+			messageSent = true;
+		}
+	} while (!endProcess);
+
+	//send array of totals
+	int totals[] = { frequencies["noPair"], frequencies["onePair"], frequencies["twoPair"], frequencies["threeOfAKind"], 
+		frequencies["straight"], frequencies["flush"], frequencies["fullHouse"], frequencies["fourOfAKind"], 
+		frequencies["straightFlush"], frequencies["royalFlush"], count };
+
+	MPI_Send(totals, 11, MPI_INT, 0, TAG_DATA, MPI_COMM_WORLD);
 }
 
 int main(int argc, char* argv[]){
-	//Deck cards;
-	//vector<Card> hand = cards.getHand();
-	//int count = 0;
-
-	//frequencies["noPair"] = 0;
-	//frequencies["onePair"] = 0;
-	//frequencies["twoPair"] = 0;
-	//frequencies["threeOfAKind"] = 0;
-	//frequencies["straight"] = 0;
-	//frequencies["flush"] = 0;
-	//frequencies["fullHouse"] = 0;
-	//frequencies["fourOfAKind"] = 0;
-	//frequencies["straightFlush"] = 0;
-	//frequencies["royalFlush"] = 0;
-
-	//srand((unsigned int)time(0));
-
-	//do{
-	//	count++;
-	//	if (CheckFrequencies()){
-	//		break;
-	//	}
-	//} while (frequencies["royalFlush"] <= 0);
 
 
 	//cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
