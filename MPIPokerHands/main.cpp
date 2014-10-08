@@ -1,21 +1,3 @@
-//	Pseudocode
-//----------
-
-//- Slave Processes
-//
-// create map
-//
-//loop
-//
-//Checks for a message from any slave(NON - BLOCKING)
-//
-//Create a hand and check it and store it
-//check to see if all are found
-//
-//end loop
-
-
-
 #include"Deck.h"
 
 #include <map>
@@ -268,6 +250,29 @@ bool checkMessagesFromSlaves( map<string, int> &frequencies, bool (&typesOfHands
 	return false;
 }
 
+void report (int count, map<string, int> frequencies)
+{
+	
+	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
+	cout << setw(60) << right << "================================================================" << endl;
+	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
+	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
+	cout << setw(16) << right << "No Pair" << setw(18) << frequencies["noPair"] << setw(30) << setprecision(6) << (frequencies["noPair"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "One Pair" << setw(18) << frequencies["onePair"] << setw(30) << setprecision(6) << (frequencies["onePair"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Two Pair" << setw(18) << frequencies["twoPair"] << setw(30) << setprecision(6) << (frequencies["twoPair"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Three of a Kind" << setw(18) << frequencies["threeOfAKind"] << setw(30) << setprecision(6) << (frequencies["threeOfAKind"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Straight" << setw(18) << frequencies["straight"] << setw(30) << setprecision(6) << (frequencies["straight"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Flush" << setw(18) << frequencies["flush"] << setw(30) << setprecision(6) << (frequencies["flush"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Full House" << setw(18) << frequencies["fullHouse"] << setw(30) << setprecision(6) << (frequencies["fullHouse"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Four of a Kind" << setw(18) << frequencies["fourOfAKind"] << setw(30) << setprecision(6) << (frequencies["fourOfAKind"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Straight Flush" << setw(18) << frequencies["straightFlush"] << setw(30) << setprecision(6) << (frequencies["straightFlush"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
+	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
+	cout << setw(16) << right << "Hands Generated: " << setw(17) << count << endl;
+	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
+}
+
+
 void processMaster(int numProcs)
 {
 	Deck cards;
@@ -285,6 +290,8 @@ void processMaster(int numProcs)
 	masterFrequencies["straightFlush"] = 0;
 	masterFrequencies["royalFlush"] = 0;
 
+	srand((unsigned int)time(0));
+
 	// structure to check that we have at least one of each type (not checking for "no pair")
 	bool typesOfHands[9] = {false}; // all initialized to false
 
@@ -295,8 +302,13 @@ void processMaster(int numProcs)
 		// check for messages from the slaves, and figure out what to do next
 		haveAllTypes = checkMessagesFromSlaves(masterFrequencies, typesOfHands);
 
-		// do roughly the same operations as the slaves, get hand, check hand, calc frequencies
-		
+		if(!haveAllTypes)
+		{
+			// do roughly the same operations as the slaves, get hand, check hand, calc frequencies
+			masterCount++;
+			CheckFrequencies(masterFrequencies, cards, 0);
+			haveAllTypes = FoundAll(masterFrequencies);
+		}
 		
 	} while(!haveAllTypes);
 
@@ -321,51 +333,64 @@ void processMaster(int numProcs)
 	// report the results
 	report(masterCount, masterFrequencies);
 }
+
 void processSlave(int rank)
 {
+	map<string, int> frequencies;
+	int count = 0;
+	static int msgBuff = 0, recvFlag;
+	MPI_Status status;
+	MPI_Request request;
+	Deck cards;
+
+	frequencies["noPair"] = 0;
+	frequencies["onePair"] = 0;
+	frequencies["twoPair"] = 0;
+	frequencies["threeOfAKind"] = 0;
+	frequencies["straight"] = 0;
+	frequencies["flush"] = 0;
+	frequencies["fullHouse"] = 0;
+	frequencies["fourOfAKind"] = 0;
+	frequencies["straightFlush"] = 0;
+	frequencies["royalFlush"] = 0;
+
+	srand((unsigned int)time(0));
+	bool foundMessageSent = false;
+	bool foundAllHands = false;
+	bool endProcess = false;
+
+	do{
+		MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
+		
+		if (recvFlag){
+			MPI_Recv(&msgBuff, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+			if (status.MPI_TAG == TAG_QUIT){
+				endProcess = true;
+			}
+		}
+		else if (!foundAllHands){
+			count++;
+			CheckFrequencies(frequencies, cards, rank);
+			foundAllHands = FoundAll(frequencies);
+		}
+		else if (!foundMessageSent && foundAllHands){
+			//send message that all were found
+			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_FOUND_ALL, MPI_COMM_WORLD, &request);
+			foundMessageSent = true;
+		}
+	} while (!endProcess);
+
+	//send array of totals
+	int totals[] = { frequencies["noPair"], frequencies["onePair"], frequencies["twoPair"], frequencies["threeOfAKind"], 
+		frequencies["straight"], frequencies["flush"], frequencies["fullHouse"], frequencies["fourOfAKind"], 
+		frequencies["straightFlush"], frequencies["royalFlush"], count };
+
+	MPI_Send(totals, 11, MPI_INT, 0, TAG_DATA, MPI_COMM_WORLD);
 }
 
-void report (int count, map<string, int> frequencies)
-{
-	
-	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
-	cout << setw(60) << right << "================================================================" << endl;
-	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
-	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
-	cout << setw(16) << right << "No Pair" << setw(18) << frequencies["noPair"] << setw(30) << setprecision(6) << (frequencies["noPair"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "One Pair" << setw(18) << frequencies["onePair"] << setw(30) << setprecision(6) << (frequencies["onePair"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Two Pair" << setw(18) << frequencies["twoPair"] << setw(30) << setprecision(6) << (frequencies["twoPair"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Three of a Kind" << setw(18) << frequencies["threeOfAKind"] << setw(30) << setprecision(6) << (frequencies["threeOfAKind"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Straight" << setw(18) << frequencies["straight"] << setw(30) << setprecision(6) << (frequencies["straight"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Flush" << setw(18) << frequencies["flush"] << setw(30) << setprecision(6) << (frequencies["flush"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Full House" << setw(18) << frequencies["fullHouse"] << setw(30) << setprecision(6) << (frequencies["fullHouse"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Four of a Kind" << setw(18) << frequencies["fourOfAKind"] << setw(30) << setprecision(6) << (frequencies["fourOfAKind"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Straight Flush" << setw(18) << frequencies["straightFlush"] << setw(30) << setprecision(6) << (frequencies["straightFlush"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
-	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
-	cout << setw(16) << right << "Hands Generated: " << setw(17) << count << endl;
-	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
-}
 
 
 int main(int argc, char* argv[]){
-	//Deck cards;
-	//vector<Card> hand = cards.getHand();
-	//int count = 0;
-
-	
-
-	//srand((unsigned int)time(0));
-
-	//do{
-	//	count++;
-	//	if (CheckFrequencies()){
-	//		break;
-	//	}
-	//} while (frequencies["royalFlush"] <= 0);
-
-	//report(count);
-
 	if (MPI_Init(&argc, &argv) == MPI_SUCCESS)
 	{
 		// Obtain the rank and the # of processes

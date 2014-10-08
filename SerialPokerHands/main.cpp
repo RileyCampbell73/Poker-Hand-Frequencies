@@ -3,6 +3,7 @@
 #include <map>
 #include <iostream>
 #include <iomanip>
+#include <mpi.h>
 using namespace std;
 
 unsigned int total = 0;
@@ -93,11 +94,15 @@ bool CheckRoyalFlush(vector<Card> hand) {
 
 map<string, int> frequencies;
 
-bool CheckFrequencies()
-{
-	Deck cards;
-	bool foundAll = false;
+bool FoundAll(map<string, int> &frequencies){
+	return frequencies["noPair"] >= 1 && frequencies["onePair"] >= 1 && frequencies["twoPair"] >= 1
+		&& frequencies["threeOfAKind"] >= 1 && frequencies["straight"] >= 1 && frequencies["flush"] >= 1
+		&& frequencies["fullHouse"] >= 1 && frequencies["fourOfAKind"] >= 1 && frequencies["straightFlush"] >= 1
+		&& frequencies["royalFlush"] >= 1;
+}
 
+void CheckFrequencies(Deck cards)
+{
 	vector<Card> hand = cards.getHand();
 
 	if(CheckRoyalFlush(hand))
@@ -120,26 +125,10 @@ bool CheckFrequencies()
 		frequencies["onePair"] += 1;
 	else
 		frequencies["noPair"] += 1;
-
-
-	//	//int foundCategories = 0;
-	//	//for(it_type iterator = frequencies.begin(); iterator != frequencies.end(); iterator++) {
-	//	//	if( iterator->second != 0 )
-	//	//		foundCategories ++;
-	//	//	if( foundCategories == 9 )
-	//	//		foundAll = true;
-	//	//}
-	//	//if (frequencies["royalFlush"] > 0)
-	//		//foundAll = true;
-	//	
-
-
-	return false;
 }
 
 void report (int count)
 {
-	
 	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
 	cout << setw(60) << right << "================================================================" << endl;
 	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
@@ -163,8 +152,6 @@ void report (int count)
 
 
 int main(int argc, char* argv[]){
-	Deck cards;
-	vector<Card> hand = cards.getHand();
 	int count = 0;
 
 	frequencies["noPair"] = 0;
@@ -180,16 +167,16 @@ int main(int argc, char* argv[]){
 
 	srand((unsigned int)time(0));
 
+	Deck cards;
+	//start time
+	double startTime = MPI_Wtime();
 	do{
 		count++;
-		if (CheckFrequencies()){
-			break;
-		}
-	} while (frequencies["royalFlush"] <= 0);
-
+		CheckFrequencies(cards);
+	} while (!FoundAll(frequencies));
+	double elapsedTime = MPI_Wtime() - startTime;
 
 	report (count);
-
 
 	return 0;
 }
