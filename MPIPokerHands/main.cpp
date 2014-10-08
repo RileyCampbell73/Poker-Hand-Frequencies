@@ -214,7 +214,7 @@ void processSlave(int rank)
 {
 	map<string, int> frequencies;
 	int count = 0;
-	static int msgBuff, recvFlag;
+	static int msgBuff = 0, recvFlag;
 	MPI_Status status;
 	MPI_Request request;
 	Deck cards;
