@@ -95,35 +95,31 @@ map<string, int> frequencies;
 
 bool CheckFrequencies()
 {
-	
-
-
-
 	Deck cards;
 	bool foundAll = false;
 
-		vector<Card> hand = cards.getHand();
+	vector<Card> hand = cards.getHand();
 
-		if(CheckRoyalFlush(hand))
-			frequencies["royalFlush"] += 1;
-		else if(CheckStraightFlush(hand))
-			frequencies["straightFlush"] += 1;
-		else if(CheckFourofKind(hand))
-			frequencies["fourOfAKind"] += 1;
-		else if(CheckFullHouse(hand))
-			frequencies["fullHouse"] += 1;
-		else if(CheckFlush(hand))
-			frequencies["flush"] += 1;
-		else if(CheckStraight(hand))
-			frequencies["straight"] += 1;
-		else if(CheckThreeofKind(hand))
-			frequencies["threeOfAKind"] += 1;
-		else if(CheckTwoPair(hand))
-			frequencies["twoPair"] += 1;
-		else if (CheckPair(hand))
-			frequencies["onePair"] += 1;
-		else
-			frequencies["noPair"] += 1;
+	if(CheckRoyalFlush(hand))
+		frequencies["royalFlush"] += 1;
+	else if(CheckStraightFlush(hand))
+		frequencies["straightFlush"] += 1;
+	else if(CheckFourofKind(hand))
+		frequencies["fourOfAKind"] += 1;
+	else if(CheckFullHouse(hand))
+		frequencies["fullHouse"] += 1;
+	else if(CheckFlush(hand))
+		frequencies["flush"] += 1;
+	else if(CheckStraight(hand))
+		frequencies["straight"] += 1;
+	else if(CheckThreeofKind(hand))
+		frequencies["threeOfAKind"] += 1;
+	else if(CheckTwoPair(hand))
+		frequencies["twoPair"] += 1;
+	else if (CheckPair(hand))
+		frequencies["onePair"] += 1;
+	else
+		frequencies["noPair"] += 1;
 
 
 	//	//int foundCategories = 0;
@@ -140,6 +136,31 @@ bool CheckFrequencies()
 
 	return false;
 }
+
+void report (int count)
+{
+	
+	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
+	cout << setw(60) << right << "================================================================" << endl;
+	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
+	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
+	cout << setw(16) << right << "No Pair" << setw(18) << frequencies["noPair"] << setw(30) << setprecision(6) << (frequencies["noPair"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "One Pair" << setw(18) << frequencies["onePair"] << setw(30) << setprecision(6) << (frequencies["onePair"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Two Pair" << setw(18) << frequencies["twoPair"] << setw(30) << setprecision(6) << (frequencies["twoPair"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Three of a Kind" << setw(18) << frequencies["threeOfAKind"] << setw(30) << setprecision(6) << (frequencies["threeOfAKind"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Straight" << setw(18) << frequencies["straight"] << setw(30) << setprecision(6) << (frequencies["straight"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Flush" << setw(18) << frequencies["flush"] << setw(30) << setprecision(6) << (frequencies["flush"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Full House" << setw(18) << frequencies["fullHouse"] << setw(30) << setprecision(6) << (frequencies["fullHouse"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Four of a Kind" << setw(18) << frequencies["fourOfAKind"] << setw(30) << setprecision(6) << (frequencies["fourOfAKind"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Straight Flush" << setw(18) << frequencies["straightFlush"] << setw(30) << setprecision(6) << (frequencies["straightFlush"] / (count * 1.0)) * 100 << endl;
+	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
+	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
+	cout << setw(16) << right << "Hands Generated: " << setw(17) << count << endl;
+	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
+}
+
+
+
 
 int main(int argc, char* argv[]){
 	Deck cards;
@@ -167,24 +188,7 @@ int main(int argc, char* argv[]){
 	} while (frequencies["royalFlush"] <= 0);
 
 
-	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
-	cout << setw(60) << right << "================================================================" << endl;
-	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
-	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
-	cout << setw(16) << right << "No Pair" << setw(18) << frequencies["noPair"] << setw(30) << setprecision(6) << (frequencies["noPair"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "One Pair" << setw(18) << frequencies["onePair"] << setw(30) << setprecision(6) << (frequencies["onePair"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Two Pair" << setw(18) << frequencies["twoPair"] << setw(30) << setprecision(6) << (frequencies["twoPair"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Three of a Kind" << setw(18) << frequencies["threeOfAKind"] << setw(30) << setprecision(6) << (frequencies["threeOfAKind"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Straight" << setw(18) << frequencies["straight"] << setw(30) << setprecision(6) << (frequencies["straight"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Flush" << setw(18) << frequencies["flush"] << setw(30) << setprecision(6) << (frequencies["flush"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Full House" << setw(18) << frequencies["fullHouse"] << setw(30) << setprecision(6) << (frequencies["fullHouse"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Four of a Kind" << setw(18) << frequencies["fourOfAKind"] << setw(30) << setprecision(6) << (frequencies["fourOfAKind"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Straight Flush" << setw(18) << frequencies["straightFlush"] << setw(30) << setprecision(6) << (frequencies["straightFlush"] / (count * 1.0)) * 100 << endl;
-	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
-	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
-	cout << setw(16) << right << "Hands Generated: " << setw(18) << count << endl;
-	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
-
+	report (count);
 
 
 	return 0;
