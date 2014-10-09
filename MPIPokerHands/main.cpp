@@ -91,6 +91,7 @@ bool CheckRoyalFlush(vector<Card> hand) {
 
 void CheckFrequencies(map<string, int> &frequencies, Deck cards, int rank)
 {
+
 	vector<Card> hand = cards.getHand();
 	MPI_Request request;
 	static int msgBuff;
@@ -201,7 +202,7 @@ void tabulateSlaveResults(int &count, map<string, int> &frequencies, int results
 // check if all of the types of hands have been found in the slaves
 bool checkAllTypes (bool (&typesOfHands)[9])
 {
-	for( int i = 0; i < 10; ++i )
+	for( int i = 0; i < 9; ++i )
 	{
 		if( typesOfHands[i] == false )
 			return false;
@@ -216,35 +217,29 @@ bool checkMessagesFromSlaves( map<string, int> &frequencies, bool (&typesOfHands
     MPI_Status status;
     static MPI_Request request;
 	bool slavesTerminated = false;
-
+	MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
+	do{
     // Test to see if a message has "come in"
-    MPI_Iprobe( MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status );
+   
 	//MAYBE LOOP HERE TO GET MORE THEN 1 MESSAGE?
-    if( recvFlag )
+	if (recvFlag)
 	{
-        // Message is waiting to be received
+		// Message is waiting to be received
 		MPI_Recv(&msgBuff, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-		if( status.MPI_TAG == TAG_NEW_TYPE )
+		if (status.MPI_TAG == TAG_NEW_TYPE)
 		{
-            // we have a new type of hand
+			// we have a new type of hand
 			// 0 = "one pair", 8 = "royal flush"
 			typesOfHands[msgBuff] = true; // [&msgBuff]?
-			
-			// check if we have all the types from all the different processes
-			if( checkAllTypes( typesOfHands ) )
-				return true;
-		}	
-		else if( status.MPI_TAG == TAG_FOUND_ALL )
-		{
-			// a slave found all the types
-			return true;
-		}
 
-        // Reset the Request handle
-        request = 0;
-	}   
-	return false;
+			// Reset the Request handle
+			request = 0;
+		}
+	}
+	MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
+	}while (recvFlag);
+	return checkAllTypes(typesOfHands);
 }
 
 void report (int count, map<string, int> frequencies, double time, int numProcs)
@@ -308,24 +303,13 @@ void processMaster(int numProcs)
 			masterCount++;
 			CheckFrequencies(masterFrequencies, cards, 0);
 			haveAllTypes = FoundAll(masterFrequencies);
+
 		}
 		
 	} while(!haveAllTypes);
 
 	// send shut down message since we have all the types of hands at this point
 	terminateSlaves(numProcs);
-	cout << "MASTER : " <<
-		masterFrequencies["noPair"] << " " <<
-		masterFrequencies["onePair"] << " " <<
-		masterFrequencies["twoPair"] << " " <<
-		masterFrequencies["threeOfAKind"] << " " <<
-		masterFrequencies["straight"] << " " <<
-		masterFrequencies["flush"] << " " <<
-		masterFrequencies["fullHouse"] << " " <<
-		masterFrequencies["fourOfAKind"] << " " <<
-		masterFrequencies["straightFlush"] << " " <<
-		masterFrequencies["royalFlush"] << " " <<
-		masterCount << endl;
 
 	// once we send the terminate messages, check for the results messages
 	for( int i = 1; i <= numProcs - 1; ++ i )
@@ -338,20 +322,7 @@ void processMaster(int numProcs)
 		//{
 			// slave results received
 			// 0 = "no pair", 9 = "royal flush", 10 = "total"
-			cout << "slave " << status.MPI_SOURCE << ":" <<
-				results[0] << " " <<
-				results[1] << " " <<
-				results[2] << " " <<
-				results[3] << " " <<
-				results[4] << " " <<
-				results[5] << " " <<
-				results[6] << " " <<
-				results[7] << " " <<
-				results[8] << " " <<
-				results[9] << " " <<
-				results[10] << endl;
-			cout << numProcs << endl;
-			cout << status.MPI_TAG << endl;
+			
 			tabulateSlaveResults(masterCount, masterFrequencies, results);
 		//}
 	}
@@ -364,6 +335,7 @@ void processMaster(int numProcs)
 
 void processSlave(int rank)
 {
+	
 	map<string, int> frequencies;
 	int count = 0;
 	static int msgBuff = 0, recvFlag;
@@ -395,16 +367,11 @@ void processSlave(int rank)
 				endProcess = true;
 			}
 		}
-		else if (!foundAllHands){
+		else if (!endProcess){
 			count++;
 			CheckFrequencies(frequencies, cards, rank);
-			foundAllHands = FoundAll(frequencies);
 		}
-		//else if (!foundMessageSent && foundAllHands){
-			//send message that all were found
-			//MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_FOUND_ALL, MPI_COMM_WORLD, &request);
-			//foundMessageSent = true;
-		//}
+
 
 	} while (!endProcess);
 
@@ -420,7 +387,6 @@ void processSlave(int rank)
 
 int main(int argc, char* argv[]){
 
-	srand(time(0));
 	if (MPI_Init(&argc, &argv) == MPI_SUCCESS)
 	{
 		// Obtain the rank and the # of processes
@@ -428,6 +394,8 @@ int main(int argc, char* argv[]){
 		MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
 		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+		srand((rank + 1) * time(0));
 		
 		if (rank == 0)
 			processMaster(numProcs);
