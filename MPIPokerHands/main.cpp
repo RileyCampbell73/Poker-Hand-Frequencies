@@ -166,12 +166,11 @@ void CheckFrequencies(map<string, int> &frequencies, Deck cards, int rank)
 
 }
 
-// switch this to check royal flush first and no pair last, no reason to continue if we don't have a royal flush
 bool FoundAll(map<string, int> &frequencies){
-	return frequencies["noPair"] >= 1 && frequencies["onePair"] >= 1 && frequencies["twoPair"] >= 1 
-	&& frequencies["threeOfAKind"] >= 1 && frequencies["straight"] >= 1 && frequencies["flush"] >= 1 
-	&& frequencies["fullHouse"] >= 1 && frequencies["fourOfAKind"] >= 1 && frequencies["straightFlush"] >= 1
-	&& frequencies["royalFlush"] >= 1;
+	return frequencies["royalFlush"] >= 1 && frequencies["straightFlush"] >= 1 && frequencies["fourOfAKind"] >= 1
+		&& frequencies["fullHouse"] >= 1 && frequencies["flush"] >= 1 && frequencies["straight"] >= 1
+		&& frequencies["threeOfAKind"] >= 1 && frequencies["twoPair"] >= 1 && frequencies["onePair"] >= 1
+		&& frequencies["noPair"] >= 1;
 }
 
 bool terminateSlaves(int numProcs)
@@ -250,10 +249,10 @@ bool checkMessagesFromSlaves( map<string, int> &frequencies, bool (&typesOfHands
 	return false;
 }
 
-void report (int count, map<string, int> frequencies)
+void report (int count, map<string, int> frequencies, double time, int numProcs)
 {
 	
-	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
+	cout << setw(64) << right << "Poker Hand Frequency Simulation [PARALLEL Version]" << endl;
 	cout << setw(60) << right << "================================================================" << endl;
 	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
@@ -269,6 +268,8 @@ void report (int count, map<string, int> frequencies)
 	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 	cout << setw(16) << right << "Hands Generated: " << setw(17) << count << endl;
+	cout << setw(14) << right << "Elapsed Time (s): " << setw(16) << time << endl;
+	cout << setw(16) << right << "Number of Processes: " << setw(13) << numProcs << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 }
 
@@ -296,6 +297,8 @@ void processMaster(int numProcs)
 	bool typesOfHands[9] = {false}; // all initialized to false
 
 	bool haveAllTypes = false; // set to false when either the master or one of the slaves have found all of the types of hands
+
+	double startTime = MPI_Wtime();
 
 	do
 	{
@@ -330,8 +333,10 @@ void processMaster(int numProcs)
 		}
 	}
 
+	double elapsedTime = MPI_Wtime() - startTime;
+
 	// report the results
-	report(masterCount, masterFrequencies);
+	report(masterCount, masterFrequencies, elapsedTime, numProcs);
 }
 
 void processSlave(int rank)
@@ -397,20 +402,12 @@ int main(int argc, char* argv[]){
 		int rank, numProcs;
 		MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
-		// Continue only if there is at least one slave process
-		if (numProcs > 1)
-		{
-			MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-			if (rank == 0)
-				processMaster(numProcs);
-			else
-				processSlave(rank);
-		}
+		if (rank == 0)
+			processMaster(numProcs);
 		else
-		{
-			cerr << "This program requires more than one process!" << endl;
-		}
+			processSlave(rank);
 
 		MPI_Finalize();
 	}

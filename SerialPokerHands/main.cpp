@@ -95,10 +95,10 @@ bool CheckRoyalFlush(vector<Card> hand) {
 map<string, int> frequencies;
 
 bool FoundAll(map<string, int> &frequencies){
-	return frequencies["noPair"] >= 1 && frequencies["onePair"] >= 1 && frequencies["twoPair"] >= 1
-		&& frequencies["threeOfAKind"] >= 1 && frequencies["straight"] >= 1 && frequencies["flush"] >= 1
-		&& frequencies["fullHouse"] >= 1 && frequencies["fourOfAKind"] >= 1 && frequencies["straightFlush"] >= 1
-		&& frequencies["royalFlush"] >= 1;
+	return frequencies["royalFlush"] >= 1 && frequencies["straightFlush"] >= 1 && frequencies["fourOfAKind"] >= 1
+		&& frequencies["fullHouse"] >= 1 && frequencies["flush"] >= 1 && frequencies["straight"] >= 1
+		&& frequencies["threeOfAKind"] >= 1 && frequencies["twoPair"] >= 1 && frequencies["onePair"] >= 1
+		&& frequencies["noPair"] >= 1;
 }
 
 void CheckFrequencies(Deck cards)
@@ -127,7 +127,7 @@ void CheckFrequencies(Deck cards)
 		frequencies["noPair"] += 1;
 }
 
-void report (int count)
+void report (int count, double time)
 {
 	cout << setw(64) << right << "Poker Hand Frequency Simulation [SERIAL Version]" << endl;
 	cout << setw(60) << right << "================================================================" << endl;
@@ -145,6 +145,7 @@ void report (int count)
 	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 	cout << setw(16) << right << "Hands Generated: " << setw(17) << count << endl;
+	cout << setw(16) << right << "Elapsed Time: " << setw(17) << cout << time << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 }
 
@@ -176,7 +177,7 @@ int main(int argc, char* argv[]){
 	} while (!FoundAll(frequencies));
 	double elapsedTime = MPI_Wtime() - startTime;
 
-	report (count);
+	report (count, elapsedTime);
 
 	return 0;
 }
