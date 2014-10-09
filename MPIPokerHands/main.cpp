@@ -28,7 +28,6 @@ bool CheckThreeofKind(vector<Card> hand){
 	return hand[0].getValue() == hand[1].getValue() && hand[0].getValue() == hand[2].getValue() || hand[1].getValue() == hand[2].getValue() && hand[1].getValue() == hand[3].getValue() || hand[2].getValue() == hand[3].getValue() && hand[2].getValue() == hand[4].getValue();
 
 }
-
 bool CheckStraight(vector<Card> hand){
 	//Hand Pattern
 	//12345 54321
@@ -37,7 +36,6 @@ bool CheckStraight(vector<Card> hand){
 		|| hand[0].getValue() == hand[1].getValue() - 1 && hand[1].getValue() == hand[2].getValue() - 1 && hand[2].getValue() == hand[3].getValue() - 1 && hand[3].getValue() == hand[4].getValue() - 1;
 
 }
-
 bool CheckFlush(vector<Card> hand) {
 	int suit = hand[0].getSuit();
 
@@ -221,7 +219,7 @@ bool checkMessagesFromSlaves( map<string, int> &frequencies, bool (&typesOfHands
 
     // Test to see if a message has "come in"
     MPI_Iprobe( MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status );
-
+	//MAYBE LOOP HERE TO GET MORE THEN 1 MESSAGE?
     if( recvFlag )
 	{
         // Message is waiting to be received
@@ -291,7 +289,6 @@ void processMaster(int numProcs)
 	masterFrequencies["straightFlush"] = 0;
 	masterFrequencies["royalFlush"] = 0;
 
-	srand((unsigned int)time(0));
 
 	// structure to check that we have at least one of each type (not checking for "no pair")
 	bool typesOfHands[9] = {false}; // all initialized to false
@@ -317,20 +314,46 @@ void processMaster(int numProcs)
 
 	// send shut down message since we have all the types of hands at this point
 	terminateSlaves(numProcs);
+	cout << "MASTER : " <<
+		masterFrequencies["noPair"] << " " <<
+		masterFrequencies["onePair"] << " " <<
+		masterFrequencies["twoPair"] << " " <<
+		masterFrequencies["threeOfAKind"] << " " <<
+		masterFrequencies["straight"] << " " <<
+		masterFrequencies["flush"] << " " <<
+		masterFrequencies["fullHouse"] << " " <<
+		masterFrequencies["fourOfAKind"] << " " <<
+		masterFrequencies["straightFlush"] << " " <<
+		masterFrequencies["royalFlush"] << " " <<
+		masterCount << endl;
 
 	// once we send the terminate messages, check for the results messages
-	for( int i = 1; i < numProcs; ++ i )
+	for( int i = 1; i <= numProcs - 1; ++ i )
 	{
 		int results[11];
 
 		MPI_Status status;
 		MPI_Recv(results, 11, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-		if( status.MPI_TAG == TAG_DATA )
-		{
+		//if( status.MPI_TAG == TAG_DATA )
+		//{
 			// slave results received
 			// 0 = "no pair", 9 = "royal flush", 10 = "total"
+			cout << "slave " << status.MPI_SOURCE << ":" <<
+				results[0] << " " <<
+				results[1] << " " <<
+				results[2] << " " <<
+				results[3] << " " <<
+				results[4] << " " <<
+				results[5] << " " <<
+				results[6] << " " <<
+				results[7] << " " <<
+				results[8] << " " <<
+				results[9] << " " <<
+				results[10] << endl;
+			cout << numProcs << endl;
+			cout << status.MPI_TAG << endl;
 			tabulateSlaveResults(masterCount, masterFrequencies, results);
-		}
+		//}
 	}
 
 	double elapsedTime = MPI_Wtime() - startTime;
@@ -359,7 +382,6 @@ void processSlave(int rank)
 	frequencies["straightFlush"] = 0;
 	frequencies["royalFlush"] = 0;
 
-	srand((unsigned int)time(0));
 	bool foundMessageSent = false;
 	bool foundAllHands = false;
 	bool endProcess = false;
@@ -378,11 +400,12 @@ void processSlave(int rank)
 			CheckFrequencies(frequencies, cards, rank);
 			foundAllHands = FoundAll(frequencies);
 		}
-		else if (!foundMessageSent && foundAllHands){
+		//else if (!foundMessageSent && foundAllHands){
 			//send message that all were found
-			MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_FOUND_ALL, MPI_COMM_WORLD, &request);
-			foundMessageSent = true;
-		}
+			//MPI_Isend(&msgBuff, 1, MPI_INT, 0, TAG_FOUND_ALL, MPI_COMM_WORLD, &request);
+			//foundMessageSent = true;
+		//}
+
 	} while (!endProcess);
 
 	//send array of totals
@@ -396,6 +419,8 @@ void processSlave(int rank)
 
 
 int main(int argc, char* argv[]){
+
+	srand(time(0));
 	if (MPI_Init(&argc, &argv) == MPI_SUCCESS)
 	{
 		// Obtain the rank and the # of processes
@@ -403,7 +428,7 @@ int main(int argc, char* argv[]){
 		MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
 
 		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
+		
 		if (rank == 0)
 			processMaster(numProcs);
 		else
@@ -411,7 +436,7 @@ int main(int argc, char* argv[]){
 
 		MPI_Finalize();
 	}
-
+	
 	return 0;
 }
 

@@ -145,7 +145,7 @@ void report (int count, double time)
 	cout << setw(16) << right << "Royal Flush" << setw(18) << frequencies["royalFlush"] << setw(30) << setprecision(6) << (frequencies["royalFlush"] / (count * 1.0)) * 100 << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 	cout << setw(16) << right << "Hands Generated: " << setw(17) << count << endl;
-	cout << setw(16) << right << "Elapsed Time: " << setw(17) << cout << time << endl;
+	cout << setw(16) << right << "Elapsed Time: " << setw(17) << time << endl;
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 }
 
