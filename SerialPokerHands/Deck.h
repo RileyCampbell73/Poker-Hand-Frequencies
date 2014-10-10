@@ -1,3 +1,8 @@
+/* 
+	Authors: Riley Campbell, James Haig
+	Purpose: Holds our Deck and Card classes and provides functionality to draw a randomized 5 card hand.
+	Date: October 9, 2014
+*/
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -80,8 +85,8 @@ public:
 		vector<Card> hand;
 
 		//shuffle the deck
-
 		random_shuffle(deck.begin(),deck.end());
+
 		//populate the hand with 5 cards off the deck
 		for (int i= 0; i < 5; i++){
 			hand.push_back(deck[i]);
@@ -89,7 +94,7 @@ public:
 		
 		//sort the hand
 		sort(hand.begin(), hand.end());
-		//hand.OrderBy(m = > m.Sort).ThenBy(m = > m.Name);
+
 		return hand;
 	}
 	

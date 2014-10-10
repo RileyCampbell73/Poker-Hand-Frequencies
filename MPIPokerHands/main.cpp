@@ -1,4 +1,10 @@
-#include"Deck.h"
+/*
+	Authors: Riley Campbell, James Haig
+	Purpose: Computes the frequencies of all 10 different types of poker hands using MPI to facilitate message passing.
+	Date: October 9, 2014
+*/
+
+#include "Utilities.h"
 
 #include <map>
 #include <iostream>
@@ -7,91 +13,12 @@
 using namespace std;
 
 unsigned int total = 0;
-const int TAG_DATA = 0, TAG_QUIT = 1, TAG_NEW_TYPE = 2, TAG_FOUND_ALL = 3;
+const int TAG_DATA = 0, TAG_QUIT = 1, TAG_NEW_TYPE = 2;
 
-bool CheckPair(vector<Card> hand){
-	//hand pattern:
-	//XXOOO OXXOO OOXXO OOOXX
-
-	return  hand[0].getValue() == hand[1].getValue() || hand[1].getValue() == hand[2].getValue() || hand[2].getValue() == hand[3].getValue() || hand[3].getValue() == hand[4].getValue();
-}
-bool CheckTwoPair(vector<Card> hand){
-	//Hand Pattern
-	//XXII0 0XXII 
-
-	return hand[0].getValue() == hand[1].getValue() && hand[2].getValue() == hand[3].getValue() || hand[1].getValue() == hand[2].getValue() && hand[3].getValue() == hand[4].getValue();
-}
-bool CheckThreeofKind(vector<Card> hand){
-	//Hand Pattern
-	//XXX00 0XXX0 00XXX
-
-	return hand[0].getValue() == hand[1].getValue() && hand[0].getValue() == hand[2].getValue() || hand[1].getValue() == hand[2].getValue() && hand[1].getValue() == hand[3].getValue() || hand[2].getValue() == hand[3].getValue() && hand[2].getValue() == hand[4].getValue();
-
-}
-bool CheckStraight(vector<Card> hand){
-	//Hand Pattern
-	//12345 54321
-
-	return hand[0].getValue() == hand[1].getValue() + 1 && hand[1].getValue() == hand[2].getValue() + 1 && hand[2].getValue() == hand[3].getValue() + 1 && hand[3].getValue() == hand[4].getValue() + 1
-		|| hand[0].getValue() == hand[1].getValue() - 1 && hand[1].getValue() == hand[2].getValue() - 1 && hand[2].getValue() == hand[3].getValue() - 1 && hand[3].getValue() == hand[4].getValue() - 1;
-
-}
-bool CheckFlush(vector<Card> hand) {
-	int suit = hand[0].getSuit();
-
-	// if every card doesn't have the same suit we don't have a flush
-	for (int i = 0; i < 5; ++i)
-	{
-		if (hand[i].getSuit() != suit)
-			return false;
-	}
-	return true;
-}
-
-bool CheckFullHouse(vector<Card> hand){
-	//Hand Pattern
-	//XXX00 00XXX
-
-	return hand[0].getValue() == hand[1].getValue() && hand[0].getValue() == hand[2].getValue() && hand[3].getValue() == hand[4].getValue()
-		|| hand[2].getValue() == hand[3].getValue() && hand[2].getValue() == hand[4].getValue() && hand[0].getValue() == hand[1].getValue();
-
-}
-
-bool CheckFourofKind(vector<Card> hand){
-	//Hand Pattern
-	//XXXX0 0XXXX
-
-	return hand[0].getValue() == hand[1].getValue() && hand[0].getValue() == hand[2].getValue() && hand[0].getValue() == hand[3].getValue()
-		|| hand[1].getValue() == hand[2].getValue() && hand[1].getValue() == hand[3].getValue() && hand[1].getValue() == hand[4].getValue();
-
-}
-
-bool CheckStraightFlush(vector<Card> hand){
-	//Hand Pattern
-	//12345 54321
-	//same suit
-
-	return hand[0].getValue() == hand[1].getValue() + 1 && hand[1].getValue() == hand[2].getValue() + 1 && hand[2].getValue() == hand[3].getValue() + 1 && hand[3].getValue() == hand[4].getValue() + 1
-		&& hand[0].getSuit() == hand[1].getSuit() && hand[0].getSuit() == hand[2].getSuit() && hand[0].getSuit() == hand[3].getSuit() && hand[0].getSuit() == hand[4].getSuit()
-		|| hand[0].getValue() == hand[1].getValue() - 1 && hand[1].getValue() == hand[2].getValue() - 1 && hand[2].getValue() == hand[3].getValue() - 1 && hand[3].getValue() == hand[4].getValue() - 1
-		&& hand[0].getSuit() == hand[1].getSuit() && hand[0].getSuit() == hand[2].getSuit() && hand[0].getSuit() == hand[3].getSuit() && hand[0].getSuit() == hand[4].getSuit();
-
-}
-
-bool CheckRoyalFlush(vector<Card> hand) {
-	// pattern:
-	// XXXXX
-	// A-10-J-Q-K
-	Suit s = hand[0].getSuit();
-
-	return hand[0].getValue() == ACE && hand[1].getValue() == TEN && hand[2].getValue() == JACK && hand[3].getValue() == QUEEN && hand[4].getValue() == KING
-		&& hand[1].getSuit() == s && hand[2].getSuit() == s && hand[3].getSuit() == s && hand[4].getSuit() == s;
-
-}
-
+// Draws a hand, checks its type, and records what type of hand was found.
+// If a slave runs this method, it will also send a message to the master if the hand found is a type that slave has never found before
 void CheckFrequencies(map<string, int> &frequencies, Deck cards, int rank)
 {
-
 	vector<Card> hand = cards.getHand();
 	MPI_Request request;
 	static int msgBuff;
@@ -165,6 +92,7 @@ void CheckFrequencies(map<string, int> &frequencies, Deck cards, int rank)
 
 }
 
+// Checks whether or not we've found all the different types of hands at least once
 bool FoundAll(map<string, int> &frequencies){
 	return frequencies["royalFlush"] >= 1 && frequencies["straightFlush"] >= 1 && frequencies["fourOfAKind"] >= 1
 		&& frequencies["fullHouse"] >= 1 && frequencies["flush"] >= 1 && frequencies["straight"] >= 1
@@ -172,6 +100,7 @@ bool FoundAll(map<string, int> &frequencies){
 		&& frequencies["noPair"] >= 1;
 }
 
+// Sends a terminate message to all slave processes
 bool terminateSlaves(int numProcs)
 {
     int msgBuff = 0;
@@ -182,7 +111,8 @@ bool terminateSlaves(int numProcs)
 	return true;
 }
 
-void tabulateSlaveResults(int &count, map<string, int> &frequencies, int results[11])
+// Combines a slave's results (passed as an array) to the master's frequencies
+void calculateSlaveResults(int &count, map<string, int> &frequencies, int results[11])
 {
 	// combine the results
 	frequencies["noPair"] += results[0];
@@ -199,7 +129,7 @@ void tabulateSlaveResults(int &count, map<string, int> &frequencies, int results
 	
 }
 
-// check if all of the types of hands have been found in the slaves
+// Checks if all of the types of hands have been found in the slaves
 bool checkAllTypes (bool (&typesOfHands)[9])
 {
 	for( int i = 0; i < 9; ++i )
@@ -210,7 +140,7 @@ bool checkAllTypes (bool (&typesOfHands)[9])
 	return true;
 }
 
-// typesOfHands holds our structure of flags to know which hands we have
+// Master process calls this method to check if there is a new type of hand found in any of the slaves
 bool checkMessagesFromSlaves( map<string, int> &frequencies, bool (&typesOfHands)[9] )
 {
     static int msgBuff, recvFlag;
@@ -219,32 +149,30 @@ bool checkMessagesFromSlaves( map<string, int> &frequencies, bool (&typesOfHands
 	bool slavesTerminated = false;
 	MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
 	do{
-    // Test to see if a message has "come in"
-   
-	//MAYBE LOOP HERE TO GET MORE THEN 1 MESSAGE?
-	if (recvFlag)
-	{
-		// Message is waiting to be received
-		MPI_Recv(&msgBuff, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-
-		if (status.MPI_TAG == TAG_NEW_TYPE)
+		// Test to see if a message has "come in"
+		if (recvFlag)
 		{
-			// we have a new type of hand
-			// 0 = "one pair", 8 = "royal flush"
-			typesOfHands[msgBuff] = true; // [&msgBuff]?
+			// Message is waiting to be received
+			MPI_Recv(&msgBuff, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 
-			// Reset the Request handle
-			request = 0;
+			if (status.MPI_TAG == TAG_NEW_TYPE)
+			{
+				// we have a new type of hand
+				// 0 = "one pair", 8 = "royal flush"
+				typesOfHands[msgBuff] = true;
+
+				// Reset the Request handle
+				request = 0;
+			}
 		}
-	}
-	MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
+		MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &recvFlag, &status);
 	}while (recvFlag);
 	return checkAllTypes(typesOfHands);
 }
 
+// Output the report
 void report (int count, map<string, int> frequencies, double time, int numProcs)
-{
-	
+{	
 	cout << setw(64) << right << "Poker Hand Frequency Simulation [PARALLEL Version]" << endl;
 	cout << setw(60) << right << "================================================================" << endl;
 	cout << setw(16) << right << "Hand Type" << setw(18) << "Frequency" << setw(30) << "Relative Frequency (%)" << endl;
@@ -266,7 +194,8 @@ void report (int count, map<string, int> frequencies, double time, int numProcs)
 	cout << setw(60) << right << "----------------------------------------------------------------" << endl;
 }
 
-
+// Master process records our time, checks for messages from the slaves, and processes hands if all of the different types of hands haven't been found
+// Once all types have been found, master process sends a terminate message to the slaves, and waits for their individual results
 void processMaster(int numProcs)
 {
 	Deck cards;
@@ -294,7 +223,7 @@ void processMaster(int numProcs)
 
 	do
 	{
-		// check for messages from the slaves, and figure out what to do next
+		// check for messages from the slaves
 		haveAllTypes = checkMessagesFromSlaves(masterFrequencies, typesOfHands);
 
 		if(!haveAllTypes)
@@ -318,13 +247,7 @@ void processMaster(int numProcs)
 
 		MPI_Status status;
 		MPI_Recv(results, 11, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-		//if( status.MPI_TAG == TAG_DATA )
-		//{
-			// slave results received
-			// 0 = "no pair", 9 = "royal flush", 10 = "total"
-			
-			tabulateSlaveResults(masterCount, masterFrequencies, results);
-		//}
+			calculateSlaveResults(masterCount, masterFrequencies, results);
 	}
 
 	double elapsedTime = MPI_Wtime() - startTime;
@@ -333,6 +256,8 @@ void processMaster(int numProcs)
 	report(masterCount, masterFrequencies, elapsedTime, numProcs);
 }
 
+// Slaves check for terminate messages from the master process, and draw hands to record their frequencies
+// Once a terminate message is received the slave will send back a message with all of their results
 void processSlave(int rank)
 {
 	
@@ -340,7 +265,6 @@ void processSlave(int rank)
 	int count = 0;
 	static int msgBuff = 0, recvFlag;
 	MPI_Status status;
-	MPI_Request request;
 	Deck cards;
 
 	frequencies["noPair"] = 0;
@@ -383,10 +307,15 @@ void processSlave(int rank)
 	MPI_Send(totals, 11, MPI_INT, 0, TAG_DATA, MPI_COMM_WORLD);
 }
 
-
+// Display a brief message
+void welcomeMessage()
+{
+	cout << "Welcome to the poker hand frequencies simulation!  This program will draw random 5 card hands from a simulated deck of cards. This is the parallel version and will use MPI to facilitate message passing between processes.  Uses however many processes you specify with an mpiexec call.  \nAuthors: Riley Campbell, James Haig. " << endl;
+}
 
 int main(int argc, char* argv[]){
 
+	welcomeMessage();
 	if (MPI_Init(&argc, &argv) == MPI_SUCCESS)
 	{
 		// Obtain the rank and the # of processes
