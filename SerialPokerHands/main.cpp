@@ -97,9 +97,9 @@ int main(int argc, char* argv[]){
 	srand((unsigned int)time(0));
 
 	Deck cards;
+	welcomeMessage();
 	//start time
 	double startTime = MPI_Wtime();
-	welcomeMessage();
 	do{
 		count++;
 		CheckFrequencies(cards);
